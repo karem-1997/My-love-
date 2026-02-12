@@ -31,10 +31,15 @@
         .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px auto; }
         .gallery img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; }
 
+        /* لوحة التحكم المطورة */
         #admin-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; color: #333; padding: 20px; border-radius: 20px; z-index: 10001; width: 350px; text-align: right; box-shadow: 0 0 50px #000; max-height: 85vh; overflow-y: auto; }
         .adm-btn { width: 100%; padding: 12px; background: var(--main-color); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         input, textarea { width: 92%; padding: 8px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; font-family: 'Cairo'; }
         
+        .manage-item { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 8px; border-radius: 10px; margin-bottom: 5px; border: 1px solid #eee; }
+        .manage-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
+        .del-btn { background: #ff4d6d; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
+
         #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; justify-content: center; align-items: center; }
         #lightbox img { max-width: 90%; max-height: 80%; border-radius: 10px; }
     </style>
@@ -68,14 +73,16 @@
     <div onclick="openAdmin()" style="position:fixed; bottom:20px; right:20px; opacity:0.1; cursor:pointer; font-size: 30px; z-index: 9998;">💖</div>
 
     <div id="admin-panel">
-        <h3 style="text-align:center; color:var(--main-color);">لوحة التحكم ✨</h3>
+        <h3 style="text-align:center; color:var(--main-color);">لوحة التحكم الشاملة ✨</h3>
+        
         <div style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
             <label>اسم الشخص:</label> <input type="text" id="confName">
             <label>تاريخ البداية (YYYY-MM-DD):</label> <input type="date" id="confDate">
             <label>باسورد الدخول:</label> <input type="text" id="confPass">
             <button onclick="saveSettings()" class="adm-btn" style="background: #28a745;">حفظ الإعدادات الأساسية</button>
         </div>
-        <div>
+
+        <div style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
             <label>رسالة الترحيب:</label> <textarea id="welcomeInp"></textarea>
             <label>تغيير الخلفية:</label> <input type="file" id="bgFileInp" accept="image/*">
             <label>إضافة صورة ذكريات:</label> <input type="file" id="fileInp" accept="image/*">
@@ -83,6 +90,12 @@
             <label>رابط يوتيوب:</label> <input type="text" id="ytInp">
             <button onclick="uploadAction()" id="upBtn" class="adm-btn">رفع المحتوى 💾</button>
         </div>
+
+        <div id="management-section">
+            <h4 style="border-bottom:1px solid #eee; padding-bottom:5px;">إدارة المحتوى (حذف):</h4>
+            <div id="manage-list">جاري تحميل القائمة...</div>
+        </div>
+
         <button onclick="document.getElementById('admin-panel').style.display='none'" class="adm-btn" style="background:#666;">إغلاق</button>
     </div>
 
@@ -125,7 +138,12 @@
             } else { alert("كلمة السر خطأ!"); }
         }
 
-        function openAdmin() { if(prompt("باسورد الإدارة:") === "1997") document.getElementById('admin-panel').style.display = "block"; }
+        function openAdmin() { 
+            if(prompt("باسورد الإدارة:") === "1997") {
+                document.getElementById('admin-panel').style.display = "block";
+                loadManagementList(); // تحميل قائمة الحذف عند الفتح
+            } 
+        }
 
         async function saveSettings() {
             const name = document.getElementById('confName').value;
@@ -160,7 +178,8 @@
         function resetAdmin() {
             document.getElementById('upBtn').disabled = false;
             document.querySelectorAll('input[type="file"], textarea, #ytInp').forEach(i => i.value = "");
-            alert("تم الرفع! ✅");
+            loadManagementList();
+            alert("تم الرفع بنجاح! ✅");
         }
 
         function loadData() {
@@ -182,6 +201,34 @@
                     v.innerHTML += `<div style="margin:20px 0; border-radius:15px; overflow:hidden;"><iframe width="100%" height="220" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
                 });
             });
+        }
+
+        // دالة تحميل قائمة الحذف في لوحة التحكم
+        function loadManagementList() {
+            const listContainer = document.getElementById('manage-list');
+            listContainer.innerHTML = "";
+            
+            const types = ['photos', 'messages', 'videos'];
+            types.forEach(type => {
+                db.ref(type).once('value', s => {
+                    if(s.val()) {
+                        Object.entries(s.val()).forEach(([key, val]) => {
+                            const item = document.createElement('div');
+                            item.className = 'manage-item';
+                            let preview = type === 'photos' ? `<img src="${val.url}">` : `<span>${(val.text || val.url).substring(0,20)}...</span>`;
+                            item.innerHTML = `${preview} <button class="del-btn" onclick="deleteItem('${type}','${key}')">X</button>`;
+                            listContainer.appendChild(item);
+                        });
+                    }
+                });
+            });
+        }
+
+        async function deleteItem(type, key) {
+            if(confirm("هل أنت متأكد من حذف هذا العنصر؟")) {
+                await db.ref(`${type}/${key}`).remove();
+                loadManagementList();
+            }
         }
 
         function openImg(url) { document.getElementById('light-img').src = url; document.getElementById('lightbox').style.display = "flex"; }
