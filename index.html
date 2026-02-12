@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="siteTitle">جاري التحميل...</title>
+    <title id="siteTitle">To My Love</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -30,7 +30,7 @@
         .unit-num { display: block; font-size: 1.2rem; font-weight: bold; color: var(--gold); }
         .unit-label { font-size: 0.7rem; color: #ddd; }
 
-        /* المعرض */
+        /* معرض الصور */
         .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px auto; }
         .gallery img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; }
 
@@ -49,7 +49,7 @@
         #lightbox img { max-width: 90%; max-height: 80%; border-radius: 10px; }
     </style>
 </head>
-<body id="mainBody">
+<body>
 
     <audio id="bgMusic" loop preload="auto"></audio>
 
@@ -60,7 +60,7 @@
 
     <div id="gate">
         <div id="gate-overlay">
-            <h1 id="gateName" style="font-family:'Dancing Script'; color:var(--main-color); font-size:3rem; margin:0 0 15px;">Love</h1>
+            <h1 id="gateName" style="font-family:'Dancing Script'; color:var(--main-color); font-size:3rem; margin:0 0 15px;">...</h1>
             <input type="text" id="nadaPass" placeholder="كلمة السر" style="text-align: center;">
             <button onclick="unlock()" class="adm-btn">دخول ❤️</button>
         </div>
@@ -88,15 +88,15 @@
         <h3 style="text-align:center; color:var(--main-color);">إعدادات الموقع المتقدمة ✨</h3>
         
         <div class="admin-section">
-            <label>اسم الشخص (English):</label> <input type="text" id="confName" placeholder="مثلاً: Omnia">
-            <label>تاريخ البداية (السنة-الشهر-اليوم):</label> <input type="date" id="confDate">
+            <label>اسم الشخص (English):</label> <input type="text" id="confName">
+            <label>تاريخ البداية (YYYY-MM-DD):</label> <input type="date" id="confDate">
             <label>باسورد الدخول (الخارجي):</label> <input type="text" id="confPass">
-            <label>رابط الأغنية المباشر (.mp3):</label> <input type="text" id="confMusic">
+            <label>رابط الأغنية المباشر (.mp3):</label> <input type="text" id="confMusic" placeholder="https://files.catbox.moe/xxxx.mp3">
             <button onclick="saveSettings()" class="adm-btn" style="background: #28a745;">حفظ التغييرات الأساسية</button>
         </div>
 
         <div class="admin-section">
-            <label>رسالة الترحيب:</label> <textarea id="welcomeInp" placeholder="اكتب رسالة الترحيب هنا"></textarea>
+            <label>رسالة الترحيب:</label> <textarea id="welcomeInp"></textarea>
             <label>تغيير الخلفية:</label> <input type="file" id="bgFileInp" accept="image/*">
             <label>إضافة صورة للذكريات:</label> <input type="file" id="fileInp" accept="image/*">
             <label>رسالة حب جديدة:</label> <textarea id="msgInp"></textarea>
@@ -108,7 +108,7 @@
     </div>
 
     <script>
-        // ربط السحابة الجديدة my-love-778ea
+        // ربط السحابة الجديدة 778ea
         const firebaseConfig = {
             apiKey: "AIzaSyBZwAqCp8qVEoX4yPYvND5GUOrDLC5706w",
             authDomain: "my-love-778ea.firebaseapp.com",
@@ -125,7 +125,7 @@
         db.ref('appSettings').on('value', s => {
             if(s.val()) {
                 settings = s.val();
-                document.getElementById('siteTitle').innerText = "To " + settings.name;
+                document.getElementById('siteTitle').innerText = settings.name;
                 document.getElementById('gateName').innerText = settings.name;
                 document.getElementById('confName').value = settings.name;
                 document.getElementById('confDate').value = settings.date;
@@ -145,15 +145,19 @@
 
         function unlock() {
             if(document.getElementById('nadaPass').value === settings.pass) {
-                if(audio.src) {
-                    audio.play().catch(() => console.log("Audio needs user interaction"));
-                    document.getElementById('music-player').style.display = "flex";
+                // محاولة تشغيل الموسيقى
+                if(audio.src && audio.src !== "") {
+                    audio.play().then(() => {
+                        document.getElementById('music-player').style.display = "flex";
+                    }).catch(e => console.log("Music play failed - Link might be invalid"));
                 }
+                
                 document.getElementById('gate').style.display = "none";
                 document.getElementById('content').style.display = "block";
                 document.getElementById('content').style.opacity = "1";
-                startLiveCounter(); loadData();
-            } else { alert("كلمة السر غير صحيحة يا بطل!"); }
+                startLiveCounter(); 
+                loadData();
+            } else { alert("كلمة السر خطأ!"); }
         }
 
         function toggleMusic() {
@@ -169,7 +173,7 @@
             const pass = document.getElementById('confPass').value;
             const music = document.getElementById('confMusic').value;
             await db.ref('appSettings').set({ name, date, pass, music });
-            alert("تم تحديث البيانات بنجاح! ✅");
+            alert("تم التحديث! ✅");
         }
 
         async function uploadAction() {
@@ -197,11 +201,11 @@
         function resetAdmin() {
             document.getElementById('upBtn').disabled = false;
             document.querySelectorAll('input[type="file"], textarea, #ytInp').forEach(i => i.value = "");
-            alert("تم رفع المحتوى بنجاح! ✅");
+            alert("تم الرفع بنجاح! ✅");
         }
 
         function loadData() {
-            db.ref('visuals/welcomeText').on('value', s => { document.getElementById('welcome-text').innerText = s.val() || "كل يوم وإنتي بخير"; });
+            db.ref('visuals/welcomeText').on('value', s => { document.getElementById('welcome-text').innerText = s.val() || "مرحباً بك"; });
             db.ref('messages').on('value', s => {
                 const l = document.getElementById('messages-list'); l.innerHTML = "";
                 if(s.val()) Object.values(s.val()).reverse().forEach(m => {
